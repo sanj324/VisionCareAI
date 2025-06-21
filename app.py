@@ -1,22 +1,21 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
 import plotly.graph_objects as go
+from fpdf import FPDF
 
-# Setup
 st.set_page_config(page_title="VisionCare AI", layout="centered")
-
-# Load model
 model = joblib.load("vision_model.pkl")
 
-# Title
-st.markdown("<h1 style='text-align: center; color: navy;'>🧠 VisionCare AI</h1>", unsafe_allow_html=True)
-st.markdown("<h4 style='text-align: center; color: gray;'>AI-powered Prediction of Early Vision Issues</h4>", unsafe_allow_html=True)
-
+st.markdown("""
+    <h1 style='text-align: center; color: navy;'>🧠 VisionCare AI</h1>
+    <h4 style='text-align: center; color: gray;'>AI-powered Prediction of Early Vision Issues</h4>
+""", unsafe_allow_html=True)
 st.divider()
 
-# Sidebar: Patient Details
+# Sidebar: Patient Info
 st.sidebar.header("👤 Patient Profile")
 age = st.sidebar.slider("Age", 18, 90, 35)
 diabetes = st.sidebar.radio("Diabetes", ["No", "Yes"])
@@ -43,7 +42,7 @@ vision_rating = st.select_slider("👁️ Vision Sharpness", ["Excellent", "Good
 occupation = st.selectbox("Occupation Type", ["Screen-based", "Non-screen-based"])
 blue_light = st.selectbox("Blue Light Exposure", ["Low", "Moderate", "High"])
 
-# Predict Button
+# Prediction logic
 if st.button("🔍 Predict Vision Risk"):
     input_df = pd.DataFrame([{
         "Age": age,
@@ -70,25 +69,28 @@ if st.button("🔍 Predict Vision Risk"):
         "Wears_Glasses_Yes": 1 if glasses == "Yes" else 0
     }])
 
-    # Align with model training columns
-    model_columns = model.feature_names_in_
-    for col in model_columns:
+    for col in model.feature_names_in_:
         if col not in input_df.columns:
             input_df[col] = 0
-    input_df = input_df[model_columns]
+    input_df = input_df[model.feature_names_in_]
 
-    # Prediction
     prediction = model.predict(input_df)
     confidence = model.predict_proba(input_df)[0][1] * 100
     result_label = "⚠️ High Risk of Vision Issue" if prediction[0] == 1 else "✅ Low Risk"
+    recommendation = (
+        "🔴 Immediate consultation with an ophthalmologist recommended. Reduce screen time, track symptoms."
+        if prediction[0] == 1 else
+        "🟢 Maintain healthy vision habits and schedule annual checkups."
+    )
 
-    # Display Result
-    st.subheader("🔬 Prediction Result")
-    st.markdown(f"<div style='background-color: #ffe6e6; padding: 10px; border-radius: 10px;'>"
-                f"<strong>{result_label}</strong> (Confidence: {confidence:.2f}%)</div>", unsafe_allow_html=True)
+    st.markdown("### 🔬 Prediction Result")
+    st.markdown(f"""
+        <div style='background-color: #ffe6e6; padding: 10px; border-radius: 10px; font-size: 18px;'>
+        <strong>{result_label}</strong> (Confidence: {confidence:.2f}%)
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Confidence Gauge
-    st.subheader("📊 Confidence Gauge")
+    st.markdown("### 📊 Confidence Gauge")
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=confidence,
@@ -104,6 +106,37 @@ if st.button("🔍 Predict Vision Risk"):
     ))
     st.plotly_chart(fig, use_container_width=True)
 
-# Footer
+    st.markdown("### 🧾 Clinical Recommendation")
+    st.success(recommendation)
+
+    def generate_pdf(data):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(200, 10, "VisionCare AI Report", ln=True, align="C")
+        pdf.set_font("Arial", "", 12)
+        pdf.ln(10)
+        for key, value in data.items():
+            pdf.cell(0, 10, f"{key}: {value}", ln=True)
+        pdf.output("VisionCare_Report.pdf")
+
+    report_data = {
+        "Age": age,
+        "Diabetes": diabetes,
+        "Blood Pressure": f"{bp} mm Hg",
+        "Screen Time": f"{screen_time} hrs",
+        "Cholesterol": f"{cholesterol} mg/dL",
+        "HbA1c": f"{hba1c}%",
+        "Smoking": smoking,
+        "Wears Glasses": glasses,
+        "Prediction": result_label,
+        "Confidence": f"{confidence:.2f}%",
+        "Recommendation": recommendation
+    }
+
+    generate_pdf(report_data)
+    with open("VisionCare_Report.pdf", "rb") as f:
+        st.download_button("📄 Download VisionCare Report (PDF)", f, file_name="VisionCare_Report.pdf")
+
 st.markdown("""<br><hr>
 <small>⚠️ This tool is for educational/clinical support. Please consult a licensed ophthalmologist for medical decisions.</small>""", unsafe_allow_html=True)
