@@ -1,0 +1,38 @@
+import pandas as pd
+import numpy as np
+
+# Generate synthetic dataset for extended vision care features
+np.random.seed(42)
+num_samples = 500
+
+data = {
+    "Age": np.random.randint(18, 90, size=num_samples),
+    "Diabetes": np.random.choice([0, 1], size=num_samples),
+    "Blood_Pressure": np.random.randint(90, 180, size=num_samples),
+    "Screen_Time": np.random.randint(0, 12, size=num_samples),
+    "Blurred_Vision": np.random.choice([0, 1], size=num_samples),
+    "Eye_Pain": np.random.choice([0, 1], size=num_samples),
+    "Headache": np.random.choice([0, 1], size=num_samples),
+    "Cholesterol": np.random.randint(120, 280, size=num_samples),
+    "HbA1c": np.round(np.random.uniform(4.0, 12.0, size=num_samples), 1),
+    "Smoking_Status": np.random.choice(["Never", "Former", "Current"], size=num_samples),
+    "Family_History": np.random.choice([0, 1], size=num_samples),
+    "Vision_Sharpness": np.random.choice(["Excellent", "Good", "Average", "Poor"], size=num_samples),
+    "Occupation_Type": np.random.choice(["Screen-based", "Non-screen-based"], size=num_samples),
+    "Blue_Light_Exposure": np.random.choice(["Low", "Moderate", "High"], size=num_samples),
+    "Night_Vision_Difficulty": np.random.choice([0, 1], size=num_samples),
+    "Tear_Production": np.random.choice(["Low", "Normal", "Excessive"], size=num_samples),
+    "Wears_Glasses": np.random.choice(["Yes", "No"], size=num_samples),
+    "Vision_Risk": np.random.choice([0, 1], size=num_samples, p=[0.6, 0.4])  # Target variable
+}
+
+df = pd.DataFrame(data)
+
+# Convert categorical features to dummy/encoded
+df_encoded = pd.get_dummies(df, drop_first=True)
+
+# Save as CSV for model training
+csv_path = "/mnt/data/visioncare_extended_data.csv"
+df_encoded.to_csv(csv_path, index=False)
+
+import ace_tools as tools; tools.display_dataframe_to_user(name="Extended VisionCare Dataset", dataframe=df)
